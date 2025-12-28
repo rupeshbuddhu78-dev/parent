@@ -1,54 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Parent Panel</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{margin:0;font-family:Arial;background:#020617;color:white}
-.header{padding:15px;text-align:center;font-size:20px}
-.container{max-width:700px;margin:auto;padding:20px}
-.card{background:#0f172a;padding:15px;border-radius:12px}
-video{width:100%;border-radius:10px;background:black}
-</style>
+    <meta charset="UTF-8">
+    <title>Parent Monitor</title>
+    <style>
+        body { margin: 0; background-color: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; }
+        h2 { position: absolute; top: 10px; font-family: sans-serif; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; }
+        img { width: 100%; height: auto; max-height: 100vh; object-fit: contain; }
+    </style>
 </head>
 <body>
 
-<div class="header">👨 Parent Control Panel</div>
+    <h2>Live Child View</h2>
+    <img id="screen-viewer" src="" alt="Waiting for Child Screen..." />
 
-<div class="container">
-  <div class="card">
-    <h3>📺 Child Live Screen</h3>
-    <video id="screen" autoplay playsinline></video>
-  </div>
-</div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Render URL se connect
+        const socket = io("https://parent-6j0g.onrender.com");
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script>
-const socket = io();   // Render / same domain
-let pc;
+        const img = document.getElementById('screen-viewer');
 
-socket.on("offer", async offer => {
-  pc = new RTCPeerConnection();
+        socket.on('screen-data', (data) => {
+            // Jaise hi image aaye, usko dikha do
+            img.src = data;
+        });
 
-  pc.ontrack = e => {
-    document.getElementById("screen").srcObject = e.streams[0];
-  };
-
-  pc.onicecandidate = e => {
-    if (e.candidate) socket.emit("ice", e.candidate);
-  };
-
-  await pc.setRemoteDescription(offer);
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  socket.emit("answer", answer);
-});
-
-socket.on("ice", async ice => {
-  if (ice && pc) await pc.addIceCandidate(ice);
-});
-</script>
-
+        socket.on("connect", () => {
+            console.log("Connected to monitoring server");
+        });
+    </script>
 </body>
 </html>
