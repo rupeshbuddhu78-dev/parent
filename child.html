@@ -46,8 +46,11 @@ video{width:100%;border-radius:10px;margin-top:10px;display:none}
   <button class="stop" onclick="stopShare()">Stop</button>
   <video id="video" autoplay muted></video>
 </div>
-
+<h2>Child Screen</h2>
+<button onclick="startShare()">Start Screen Share</button>
+<video id="preview" autoplay muted style="width:300px"></video>
 </div>
+  
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
@@ -105,6 +108,41 @@ function stopShare(){
   document.getElementById("video").style.display="none";
   document.getElementById("statusText").innerText="Screen Sharing Stopped";
 }
+ 
+const socket = io();
+let pc;
+
+async function startShare() {
+  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+
+  // Optional preview (child side)
+  document.getElementById("preview").srcObject = stream;
+
+  pc = new RTCPeerConnection();
+
+  stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+  pc.onicecandidate = e => {
+    if (e.candidate) socket.emit("ice", e.candidate);
+  };
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  socket.emit("offer", offer);
+}
+
+socket.on("answer", async answer => {
+  await pc.setRemoteDescription(answer);
+});
+
+socket.on("ice", async ice => {
+  await pc.addIceCandidate(ice);
+});
+
+
+
+
 </script>
 </body>
 </html>
+
