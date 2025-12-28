@@ -22,6 +22,8 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:8px;bac
     <video id="remoteVideo" autoplay playsinline></video>
     <button onclick="request()">Request Screen</button>
   </div>
+  <h2>Parent Screen</h2>
+<video id="screen" autoplay playsinline style="width:90%"></video>
 </div>
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
@@ -40,7 +42,41 @@ async function request(){
   await pc.setLocalDescription(offer);
   socket.emit("offer", offer);
 }
+
+ 
+
+
+
+
+
+const socket = io();
+let pc;
+
+socket.on("offer", async offer => {
+  pc = new RTCPeerConnection();
+
+  pc.ontrack = e => {
+    document.getElementById("screen").srcObject = e.streams[0];
+  };
+
+  pc.onicecandidate = e => {
+    if (e.candidate) socket.emit("ice", e.candidate);
+  };
+
+  await pc.setRemoteDescription(offer);
+
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  socket.emit("answer", answer);
+});
+
+socket.on("ice", async ice => {
+  await pc.addIceCandidate(ice);
+});
+
+
 </script>
 
 </body>
 </html>
+
