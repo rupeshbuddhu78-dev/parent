@@ -9,7 +9,7 @@ const io = new Server(server, {
 });
 
 // Serve client files
-app.use(express.static("../client"));
+app.use(express.static(https://parent-6j0g.onrender.com));
 
 io.on("connection", socket => {
   console.log("Connected:", socket.id);
@@ -34,3 +34,4 @@ io.on("connection", socket => {
 server.listen(3000, () => {
   console.log("✅ Server running on http://localhost:3000");
 });
+
