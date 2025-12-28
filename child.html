@@ -1,70 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Child Screen</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin: 0;
-      background: #020617;
-      color: white;
-      font-family: Arial;
-      text-align: center;
-    }
-    button {
-      margin-top: 20px;
-      padding: 14px 20px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      background: #38bdf8;
-    }
-    video {
-      margin-top: 15px;
-      width: 90%;
-      border-radius: 10px;
-      background: black;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Child Device</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; padding-top: 50px; }
+        button { padding: 15px 30px; font-size: 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        #status { margin-top: 20px; font-size: 18px; color: #ffcc00; }
+    </style>
 </head>
 <body>
 
-<h2>📱 Child Screen</h2>
-<button id="shareBtn">Start Screen Share</button>
-<video id="preview" autoplay muted></video>
+    <h2>Child Screen Sender</h2>
+    <p>1. Click Button <br> 2. Select "Entire Screen" <br> 3. Click "Share"</p>
+    
+    <button onclick="startSharing()">START SHARING</button>
+    
+    <p id="status">Status: Disconnected</p>
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script>
-const socket = io();
-let pc;
+    <video id="video" autoplay style="display:none;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
 
-document.getElementById("shareBtn").onclick = async () => {
-  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Yahan tumhara Render URL dala hai connection ke liye
+        const socket = io("https://parent-6j0g.onrender.com");
 
-  document.getElementById("preview").srcObject = stream;
+        socket.on("connect", () => {
+            document.getElementById('status').innerText = "Status: Connected to Server";
+            document.getElementById('status').style.color = "orange";
+        });
 
-  pc = new RTCPeerConnection();
+        async function startSharing() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: false
+                });
 
-  stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                document.getElementById('status').innerText = "Status: SHARING LIVE!";
+                document.getElementById('status').style.color = "#00ff00";
 
-  pc.onicecandidate = e => {
-    if (e.candidate) socket.emit("ice", e.candidate);
-  };
+                const canvas = document.getElementById('canvas');
+                const context = canvas.getContext('2d');
 
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  socket.emit("offer", offer);
-};
+                // Frame bhejne ka loop
+                setInterval(() => {
+                    if(video.readyState === video.HAVE_ENOUGH_DATA) {
+                        // Quality settings (Speed badhane ke liye size half kiya)
+                        canvas.width = video.videoWidth / 2; 
+                        canvas.height = video.videoHeight / 2;
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        
+                        // Image ko compress karke bhejo
+                        const imageData = canvas.toDataURL("image/jpeg", 0.5);
+                        socket.emit('screen-data', imageData);
+                    }
+                }, 100); // 100ms = 10 frames per second (smooth enough)
 
-socket.on("answer", async answer => {
-  if (pc) await pc.setRemoteDescription(answer);
-});
-
-socket.on("ice", async ice => {
-  if (pc && ice) await pc.addIceCandidate(ice);
-});
-</script>
-
+            } catch (err) {
+                console.error("Error: " + err);
+                alert("Permission Denied! Please allow screen share.");
+            }
+        }
+    </script>
 </body>
 </html>
