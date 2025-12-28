@@ -1,19 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Child Screen</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body{margin:0;font-family:Arial;background:#020617;color:white;text-align:center}
-button{padding:14px 20px;border:none;border-radius:10px;background:#38bdf8;font-size:18px}
-video{width:90%;margin-top:15px;border-radius:10px}
-</style>
+  <meta charset="UTF-8">
+  <title>Child Screen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #020617;
+      color: white;
+      font-family: Arial;
+      text-align: center;
+    }
+    button {
+      margin-top: 20px;
+      padding: 14px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #38bdf8;
+    }
+    video {
+      margin-top: 15px;
+      width: 90%;
+      border-radius: 10px;
+      background: black;
+    }
+  </style>
 </head>
 <body>
 
 <h2>📱 Child Screen</h2>
-<button onclick="startShare()">Start Screen Share</button>
+<button id="shareBtn">Start Screen Share</button>
 <video id="preview" autoplay muted></video>
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
@@ -21,8 +39,8 @@ video{width:90%;margin-top:15px;border-radius:10px}
 const socket = io();
 let pc;
 
-async function startShare(){
-  const stream = await navigator.mediaDevices.getDisplayMedia({ video:true });
+document.getElementById("shareBtn").onclick = async () => {
+  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
 
   document.getElementById("preview").srcObject = stream;
 
@@ -37,14 +55,14 @@ async function startShare(){
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   socket.emit("offer", offer);
-}
+};
 
 socket.on("answer", async answer => {
-  await pc.setRemoteDescription(answer);
+  if (pc) await pc.setRemoteDescription(answer);
 });
 
 socket.on("ice", async ice => {
-  if (ice) await pc.addIceCandidate(ice);
+  if (pc && ice) await pc.addIceCandidate(ice);
 });
 </script>
 
