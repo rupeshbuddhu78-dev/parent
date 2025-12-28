@@ -1,121 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Child Control Panel</title>
+<title>Child Screen</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white}
-.header{padding:15px;text-align:center;font-size:20px;font-weight:bold}
-.container{padding:20px;max-width:420px;margin:auto}
-.card{background:#020617;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 0 15px rgba(0,0,0,0.5)}
-.status{display:flex;align-items:center;gap:10px;font-size:14px}
-.dot{width:10px;height:10px;border-radius:50%;background:red}
-.dot.active{background:lime}
-button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:8px;font-size:15px;cursor:pointer}
-.allow{background:#22c55e;color:black}
-.reject{background:#ef4444;color:white}
-.share{background:#38bdf8;color:black}
-.stop{background:#f97316;color:white}
-video{width:100%;border-radius:10px;margin-top:10px;display:none}
+body{margin:0;font-family:Arial;background:#020617;color:white;text-align:center}
+button{padding:14px 20px;border:none;border-radius:10px;background:#38bdf8;font-size:18px}
+video{width:90%;margin-top:15px;border-radius:10px}
 </style>
 </head>
 <body>
 
-<div class="header">👶 Child Device Panel</div>
-
-<div class="container">
-
-<div class="card">
-  <div class="status">
-    <div id="dot" class="dot"></div>
-    <span id="statusText">Waiting for parent request</span>
-  </div>
-</div>
-
-<div class="card" id="requestCard">
-  <h3>📩 Parent Request</h3>
-  <p><b>Request:</b> Screen Share</p>
-  <button class="allow" onclick="allowAccess()">Allow</button>
-  <button class="reject" onclick="rejectAccess()">Reject</button>
-</div>
-
-<div class="card" id="screenCard" style="display:none">
-  <h3>🖥 Screen Sharing</h3>
-  <button class="share" onclick="startShare()">Start Screen Share</button>
-  <button class="stop" onclick="stopShare()">Stop</button>
-  <video id="video" autoplay muted></video>
-</div>
-<h2>Child Screen</h2>
+<h2>📱 Child Screen</h2>
 <button onclick="startShare()">Start Screen Share</button>
-<video id="preview" autoplay muted style="width:300px"></video>
-</div>
-  
+<video id="preview" autoplay muted></video>
 
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 <script>
-let stream = null;
-const socket = io("http://localhost:3000");
-const pc = new RTCPeerConnection();
-
-pc.onicecandidate = e => { if(e.candidate) socket.emit("ice", e.candidate); };
-pc.ontrack = e => console.log("Track received"); // optional
-
-socket.on("offer", async offer => {
-  if(!stream){
-    alert("Start screen share first!");
-    return;
-  }
-  await pc.setRemoteDescription(offer);
-  stream.getTracks().forEach(track => pc.addTrack(track, stream));
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
-  socket.emit("answer", answer);
-});
-
-socket.on("ice", async candidate => {
-  if(candidate) await pc.addIceCandidate(candidate);
-});
-
-function allowAccess(){
-  document.getElementById("statusText").innerText="Access Allowed";
-  document.getElementById("dot").classList.add("active");
-  document.getElementById("requestCard").style.display="none";
-  document.getElementById("screenCard").style.display="block";
-}
-
-function rejectAccess(){
-  document.getElementById("statusText").innerText="Access Rejected";
-  document.getElementById("dot").classList.remove("active");
-  alert("Request rejected");
-}
-
-async function startShare(){
-  try{
-    stream = await navigator.mediaDevices.getDisplayMedia({video:true});
-    const video = document.getElementById("video");
-    video.srcObject = stream;
-    video.style.display="block";
-    document.getElementById("statusText").innerText="Screen Sharing ON";
-    stream.getVideoTracks()[0].onended = ()=>stopShare();
-  }catch(err){
-    alert("Screen share cancelled");
-  }
-}
-
-function stopShare(){
-  if(stream) stream.getTracks().forEach(track=>track.stop());
-  document.getElementById("video").style.display="none";
-  document.getElementById("statusText").innerText="Screen Sharing Stopped";
-}
- 
 const socket = io();
 let pc;
 
-async function startShare() {
-  const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+async function startShare(){
+  const stream = await navigator.mediaDevices.getDisplayMedia({ video:true });
 
-  // Optional preview (child side)
   document.getElementById("preview").srcObject = stream;
 
   pc = new RTCPeerConnection();
@@ -136,13 +44,9 @@ socket.on("answer", async answer => {
 });
 
 socket.on("ice", async ice => {
-  await pc.addIceCandidate(ice);
+  if (ice) await pc.addIceCandidate(ice);
 });
-
-
-
-
 </script>
+
 </body>
 </html>
-
