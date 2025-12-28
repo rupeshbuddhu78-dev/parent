@@ -1,28 +1,35 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: { origin: "*" } // Allow any domain
 });
 
-// Serve client files
-app.use(express.static(https://parent-6j0g.onrender.com));
+// Serve parent.html automatically at root
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "parent.html"));
+});
 
-io.on("connection", socket => {
+// Serve static files (child.html etc.)
+app.use(express.static(__dirname));
+
+io.on("connection", (socket) => {
   console.log("Connected:", socket.id);
 
-  socket.on("offer", data => {
+  // WebRTC signaling events
+  socket.on("offer", (data) => {
     socket.broadcast.emit("offer", data);
   });
 
-  socket.on("answer", data => {
+  socket.on("answer", (data) => {
     socket.broadcast.emit("answer", data);
   });
 
-  socket.on("ice", data => {
+  socket.on("ice", (data) => {
     socket.broadcast.emit("ice", data);
   });
 
@@ -31,7 +38,9 @@ io.on("connection", socket => {
   });
 });
 
-server.listen(3000, () => {
-  console.log("✅ Server running on http://localhost:3000");
-});
+// Use Render PORT or default 3000
+const PORT = process.env.PORT || 3000;
 
+server.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
